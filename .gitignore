@@ -1,0 +1,5 @@
+# Machine-specific deployment and authentication files
+.clasp.json
+.clasprc*.json
+.deployment/
+node_modules/
