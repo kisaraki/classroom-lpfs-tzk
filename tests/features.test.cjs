@@ -82,6 +82,20 @@ test('all missing scores and actual zero scores share a rank without changing st
   assert.equal(f.writes(), 0);
 });
 
+test('a subject without any exam remains visible as missing and contributes zero without writes', () => {
+  const f = fixture();
+  f.tables.Grades = f.tables.Grades.filter((r, i) => i === 0 || r[4] !== '1151_Other');
+  const exam = f.payload.exams.find(e => e.subject === 'Other');
+  exam.examDate = ''; exam.examScope = '';
+  const before = JSON.stringify(f.tables);
+  const report = f.ctx.classReport_(f.payload);
+  assert.deepEqual(Array.from(report.rows, r => r.total), [0, 0, 0]);
+  assert.deepEqual(Array.from(report.rows, r => r.rank), [1, 1, 1]);
+  assert(report.rows.every(r => r.scores[0] === null));
+  assert.equal(JSON.stringify(f.tables), before);
+  assert.equal(f.writes(), 0);
+});
+
 test('only exact selected exam contributes; last duplicate grade wins; other semesters excluded', () => {
   const f = fixture();
   f.tables.Grades.push(['1151', 1, 'A', '學生A', '1151_Other', '2026-10-02', 100, '第一次段考']);

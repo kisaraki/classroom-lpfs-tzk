@@ -25,9 +25,9 @@
       data = d;
       $('crSubjects').innerHTML = d.subjects.map(function (subject, i) {
         return '<tr><td><label><input class="cr-display" data-index="' + i + '" type="checkbox"' +
-          (subject.exams.length ? ' checked' : ' disabled') + '> ' + esc(subject.na) + '</label></td><td>' +
+          ' checked> ' + esc(subject.na) + '</label></td><td>' +
           '<select id="crExam-' + i + '" class="field" aria-label="' + esc(subject.na + '段考場次') + '">' +
-          '<option value="">不選取</option>' + subject.exams.map(function (exam, j) {
+          '<option value="">' + (subject.exams.length ? '不選取' : '尚無成績（以 0 分計算）') + '</option>' + subject.exams.map(function (exam, j) {
             return '<option value="' + j + '">' + esc(exam.examDate + '｜' + (exam.examScope || '未填考試範圍')) + '</option>';
           }).join('') + '</select></td></tr>';
       }).join('');
@@ -39,7 +39,7 @@
           d.subjects.map(function (s) { return '<option value="' + esc(s.code) + '"' +
             (match && s.code === match.code ? ' selected' : '') + '>' + esc(s.na) + '</option>'; }).join('') + '</select></div>';
       }).join('');
-      $('crRun').disabled = !d.subjects.some(function (s) { return s.exams.length; });
+      $('crRun').disabled = !d.subjects.length;
       message('請逐科選擇此階段的段考場次，再產生成績單。自然科可自行對應既有科目。');
     }).catch(function (msg) { if (serial === optionSequence) message(msg); });
   }
@@ -53,7 +53,7 @@
   }
   function reportSubtitle(d) {
     return d.ysem + '｜' + d.stage + '｜' + d.columns.map(function (c) {
-      return c.subjectNA + ' ' + c.examDate + ' ' + c.examScope;
+      return c.examDate ? c.subjectNA + ' ' + c.examDate + ' ' + c.examScope : c.subjectNA + '（尚無成績）';
     }).join('；') + '｜同分比較：' + d.tieOrder.map(function (t) { return t.name + '（' + (t.subjectNA || '略過') + '）'; }).join(' → ');
   }
   function run() {
@@ -64,6 +64,10 @@
       var value = $('crExam-' + i).value;
       var display = root.querySelector('.cr-display[data-index="' + i + '"]').checked;
       if (value === '') {
+        if (!subject.exams.length) {
+          exams.push({subject:subject.code, examDate:'', examScope:'', display:display});
+          return;
+        }
         if (display) throw new Error('請選擇段考場次：' + subject.na);
         return;
       }

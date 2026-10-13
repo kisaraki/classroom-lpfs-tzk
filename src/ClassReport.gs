@@ -93,9 +93,10 @@ function classReport_(payload) {
     const exam = subject.exams.find(function (x) {
       return x.examDate === e.examDate && x.examScope === e.examScope;
     });
-    if (!exam) throw new Error('找不到所選場次：' + subject.na);
-    const item = { subject: subject.code, subjectNA: subject.na, examDate: exam.examDate,
-      examScope: exam.examScope, display: e.display === true, scores: Object.create(null) };
+    const noExam = !subject.exams.length && e.examDate === '' && e.examScope === '';
+    if (!exam && !noExam) throw new Error('找不到所選場次：' + subject.na);
+    const item = { subject: subject.code, subjectNA: subject.na, examDate: exam ? exam.examDate : '',
+      examScope: exam ? exam.examScope : '', display: e.display === true, scores: Object.create(null) };
     selected[subject.code.toUpperCase()] = item;
     if (item.display) columns.push(item);
   });
