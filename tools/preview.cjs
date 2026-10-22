@@ -4,6 +4,12 @@ const path = require('node:path');
 const vm = require('node:vm');
 const http = require('node:http');
 const root = path.resolve(__dirname, '..');
+const countArg = process.argv.find(arg => arg.startsWith('--students='));
+const portArg = process.argv.find(arg => arg.startsWith('--port='));
+const studentCount = countArg ? Number(countArg.split('=')[1]) : 3;
+const port = portArg ? Number(portArg.split('=')[1]) : 8765;
+const examHistory = process.argv.includes('--exam-history');
+if (!Number.isInteger(studentCount) || studentCount < 1 || studentCount > 2000) throw new Error('students must be 1–2000');
 const headers = {
   Semester_TA_List:['Ysem','Subject','Subject_NA','TA_Password'],
   Students:['Ysem','Seat_No','Student_ID','Name','Auth_Code'],
@@ -12,10 +18,19 @@ const headers = {
 const tables = Object.fromEntries(Object.entries(headers).map(([name, row]) => [name, [row]]));
 const subjects = [['Chi','國文'],['Eng','英文'],['Math','數學'],['Sci','自然'],['Hist','歷史'],['Geo','地理'],['Civ','公民']];
 subjects.forEach(([code, name]) => tables.Semester_TA_List.push(['1151','1151_' + code,name,'demo']));
-['示範學生甲','示範學生乙','示範學生丙'].forEach((name, i) => {
+Array.from({length:studentCount}, (_, i) => ['示範學生甲','示範學生乙','示範學生丙'][i] || '示範學生' + (i + 1)).forEach((name, i) => {
   tables.Students.push(['1151',i + 1,'DEMO' + (i + 1),name,'demo']);
   subjects.forEach(([code], j) => tables.Grades.push(['1151',i + 1,'DEMO' + (i + 1),name,'1151_' + code,'2026-10-01',i === 2 && j === 6 ? '' : 80 + (i === 0 && j === 0 ? 5 : i === 1 && j === 1 ? 5 : 0),'第一次段考']));
 });
+if (examHistory) {
+  const original = tables.Grades.slice(1);
+  original.forEach(row => {
+    tables.Grades.push([...row.slice(0, 5), '2026-09-15', row[6], '開學複習']);
+    const subjectIndex = subjects.findIndex(([code]) => row[4] === '1151_' + code);
+    tables.Grades.push([...row.slice(0, 5), subjectIndex % 2 ? '2026-10-16' : '2026-10-15', row[6], '第二次段考']);
+    if (subjectIndex === 6) tables.Grades.push([...row.slice(0, 5), '2026-10-15', row[6], '第二次段考補充']);
+  });
+}
 const properties = {SPREADSHEET_ID:'local-demo', ANNOUNCEMENTS_V1:JSON.stringify({revision:1,items:[
   {id:'demo-notice',title:'段考成績查詢提醒',body:'本頁為本機模擬預覽。\n可使用 demo-admin 登入查看公告管理與全班成績單。',published:true,updatedAt:'2026-10-13T01:00:00Z'}
 ]})};
@@ -52,4 +67,4 @@ http.createServer((req,res) => {
     return;
   }
   res.writeHead(404);res.end();
-}).listen(8765,'127.0.0.1',() => console.log('Local sample preview: http://127.0.0.1:8765 — demo-admin'));
+}).listen(port,'127.0.0.1',() => console.log('Local sample preview: http://127.0.0.1:' + port + ' — demo-admin (' + studentCount + ' students)'));

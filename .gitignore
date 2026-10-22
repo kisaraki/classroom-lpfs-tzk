@@ -3,3 +3,4 @@
 .clasprc*.json
 .deployment/
 node_modules/
+output/
